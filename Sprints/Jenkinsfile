@@ -1,0 +1,52 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main',
+                    credentialsId: '7e212e24-2dcd-4459-935a-69014da9b777',
+                    url: 'https://github.com/Alkumati/Sprints-Final-Project.git'
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    dir('FlaskApp') { // Change to the FlaskApp directory
+                        sh 'docker build -t flaskapp:latest .'
+                    }
+                }
+            }
+        }
+        stage('Upload Image to Nexus') {
+            steps {
+                script {
+                    def nexusUser = 'admin'
+                    def nexusPassword = 'admin'
+                    def nexusUrl = 'http://abcdef12345678901234567890ghijk-543216789.us-east-1.elb.amazonaws.com:8081'
+
+                    // Log in to Nexus
+                    sh "docker login -u ${nexusUser} -p ${nexusPassword} ${nexusUrl}"
+
+                    // Tag and push the image to Nexus
+                    sh "docker tag flaskapp:latest ${nexusUrl}/flaskapp:latest"
+                    sh "docker push ${nexusUrl}/flaskapp:latest"
+
+                    // Log out from Nexus
+                    sh "docker logout ${nexusUrl}"
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            // Clean up
+            sh 'docker system prune -f'
+        }
+        failure {
+        
+            echo 'Pipeline failed!'
+        }
+    }
+}

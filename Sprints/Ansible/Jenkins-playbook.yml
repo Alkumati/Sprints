@@ -1,0 +1,39 @@
+---
+- name: Set up Jenkins on Ubuntu EC2
+  hosts: EC2s
+  become: yes
+  tasks:
+    - name: Refresh apt package index
+      apt:
+        update_cache: yes
+
+    - name: Install Java Runtime Environment
+      apt:
+        name: openjdk-17-jdk
+        state: present
+
+    - name: Import Jenkins GPG key
+      apt_key:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+        state: present
+
+    - name: Configure Jenkins APT repository
+      apt_repository:
+        repo: 'deb https://pkg.jenkins.io/debian-stable binary/'
+        state: present
+
+    - name: Update package cache after adding Jenkins repo
+      apt:
+        update_cache: yes
+        force_apt_get: yes
+
+    - name: Install Jenkins package
+      apt:
+        name: jenkins
+        state: present
+
+    - name: Enable and start Jenkins service
+      systemd:
+        name: jenkins
+        enabled: yes
+        state: started
